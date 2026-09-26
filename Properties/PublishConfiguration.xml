@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Publish>
+  <!-- Leave empty for the first publish. Replace with the assigned Paradox Mods ID afterward. -->
+  <ModId Value="" />
+
+  <DisplayName Value="Company Brand Fix" />
+
+  <ShortDescription Value="Repairs broken company brand references on map load, with optional cleanup of orphaned props." />
+
+  <LongDescription># Company Brand Fix
+
+Repairs broken or missing company brand references when a city finishes loading. Essentially, this cleans up broken brands attached to companies after brands are changed/deleted. If you unsubscribe from a company brand pack (whether it be made by me or someone else), this will ensure you won't have broken brands or broken props that show up as gridded boxes.
+
+## Features
+
+- Repairs companies whose brand reference is null, deleted, stale, or no longer resolves to a valid loaded prefab.
+- Uses the company's own compatible brand list when selecting a replacement.
+- Leaves valid company brands untouched.
+- Runs once after each map load and then becomes dormant.
+- Includes an optional **Delete broken props on startup** setting.
+- When enabled, the prop cleanup runs only after brand repair has completed.
+- Healthy props and buildings are not modified.
+- Broken standalone props are removed.
+- Broken building-owned props are removed and only the affected building is refreshed.
+
+## Performance
+
+The company repair and optional prop cleanup are one-time map-load passes. There is no continuous city-wide scanning after the repair completes.
+
+## Safety
+
+The mod validates prefab references before modifying them and avoids replacing buildings or guessing replacement props. If a reference cannot be repaired safely, it is skipped or removed according to the selected cleanup behavior.</LongDescription>
+
+  <!-- Put your final cover image at Properties/Thumbnail.png before publishing. -->
+  <Thumbnail Value="Properties/Thumbnail.png" />
+
+  <Tag Value="Code Mod" />
+
+  <ModVersion Value="0.2.2" />
+
+  <GameVersion Value="1.6.*" />
+
+  <ChangeLog>Initial public release.
+
+- Repairs broken company brand references after map load.
+- Adds optional orphaned-prop cleanup.
+- Keeps healthy buildings and props untouched.
+- Uses one-time repair passes with no continuous scanning.</ChangeLog>
+</Publish>

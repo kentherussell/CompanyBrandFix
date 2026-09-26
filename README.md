@@ -1,57 +1,68 @@
-# Company Brand Fix
+CompanyBrandFi
+============================
 
-A deliberately small Cities: Skylines II code mod that repairs live companies whose `CompanyData.m_Brand` is `Entity.Null`.
+Purpose
+-------
+1. Always performs the lightweight CompanyData.m_Brand repair after each map load.
+2. Optionally performs one prop-only orphan cleanup AFTER brand repair.
 
-## Behavior
+Settings
+--------
+Options -> Mods -> Company Brand Fix -> Main -> Cleanup
 
-- Detects every `GameMode.Game` map/save load.
-- Also has a first-game-tick fallback if the mod/system is created after the normal loading callback already fired.
-- Waits **2,048 simulation ticks** before touching the loaded city (~11.25 in-game minutes at vanilla time scale).
-- Checks the timer every **512 ticks** while active.
-- Scans existing non-temp, non-deleted, non-moving-away companies once.
-- Uses each company prefab's vanilla `CompanyBrandElement` buffer as the compatibility list.
-- If several compatible brands exist, picks one deterministically from the company entity index.
-- Sets only literal null brands. Existing non-null brands are never changed.
-- Marks the rented property `Updated` through `EndFrameBarrier` so brand/billboard visuals can refresh.
-- After success, remains enabled only as a tiny lifecycle listener; its idle update path is a few boolean checks every 512 simulation ticks and performs no company query.
+"Delete broken props on startup"
+Default: OFF
 
-## Logging / verification
+When OFF:
+- No orphaned-prop query/scan runs at all.
+- Only the lightweight company-brand repair runs.
 
-Expected normal sequence:
+When ON:
+- Brand repair runs first.
+- The prop cleanup waits one additional system update so brand/property refreshes can play back.
+- One prop-only scan runs, then stops for the rest of the map session.
+- Healthy props and healthy buildings receive no writes.
+- Root buildings are never deleted/replaced by this system.
 
-- `CompanyBrandFix 0.1.2 loading.`
-- `BrandRepairSystem created; waiting for a city/map load.`
-- `Brand repair scheduled (map load callback)...` or `Brand repair scheduled (first game tick fallback)...`
-- `Starting brand repair pass...`
-- `Brand repair complete. Scanned=..., Null=..., Repaired=..., NoCompatibleBrand=...`
+Standalone broken prop behavior
+-------------------------------
+The mod first attempts a conservative rename recovery:
+- It reads the stale prefab/entity debug name when available.
+- It normalizes names by keeping only letters/digits and lowercasing.
+  Example: R0158___Aldi and R0158_Aldi normalize to the same key.
+- It only replaces when exactly ONE healthy prop prefab already represented in the city has that exact normalized key.
+- It does NOT use fuzzy/Levenshtein similarity and never guesses between ambiguous matches.
+- If no safe match exists, the broken standalone prop is deleted.
 
-If `Repaired` is greater than zero, the repair ran and changed live company entities.
+Important: entity/debug names are best-effort runtime metadata. Some broken references may not retain a recoverable name; those fall back to deletion.
 
-## Failure behavior
+Building-owned broken prop behavior
+-----------------------------------
+- The broken child prop is removed.
+- Only the owning building is marked Updated.
+- Healthy buildings are untouched.
+- The mod does not name-match generated building subobjects; the current building definition should be authoritative.
 
-The pass is idempotent. If an exception happens after some companies were repaired, a retry will simply skip those companies.
+Non-building-owned objects
+--------------------------
+Broken objects owned by networks/infrastructure/other non-building owner graphs are logged and skipped for safety.
 
-- First exception: log one warning and retry once after another 2,048 ticks.
-- Second exception: log the error and stop attempting repairs for the current map.
-- A missing prefab, missing `CompanyBrandElement` buffer, empty compatibility list, or invalid brand entity is a safe skip, not an exception.
-- The next map/save load gets a fresh attempt.
+Logging
+-------
+Search the game log for CompanyBrandFix.
+Useful summary line:
 
-## Why this is intentionally small
+Orphaned prop scan complete. Scanned=..., UniquePrefabsChecked=..., Broken=..., ReplacedStandalone=..., RemovedStandalone=..., RemovedBuildingOwned=..., BuildingsRefreshed=..., SkippedNonBuildingOwned=...
 
-There is no Harmony, reflection, settings UI, serialized mod state, custom components, or continuous company polling. It relies on vanilla's own prefab-to-brand compatibility buffer rather than duplicating company/resource rules.
+Safety / performance
+--------------------
+- Prop cleanup is opt-in and defaults OFF.
+- When disabled, there is no prop scan.
+- When enabled, it is a one-shot in-memory ECS scan after each map load.
+- Prefab validity is cached per unique prefab entity.
+- Only confirmed broken prop instances are mutated.
+- Company brand repair and prop cleanup each retry once after an exception, then fail closed for that map.
 
-Direct ECS field/type references are intentional. If a future game update actually removes or renames `CompanyData.m_Brand` or `CompanyBrandElement`, the mod should be rebuilt instead of hiding an incompatible API behind reflection.
-
-## Build
-
-Requirements:
-
-1. Cities: Skylines II Modding Toolchain installed.
-2. `CSII_TOOLPATH` configured by the toolchain.
-3. .NET/MSBuild environment used by the CS2 toolchain.
-
-Open `CompanyBrandFix.csproj` in the CS2 modding environment and build `Release`.
-
-## Deliberate scope
-
-This version repairs companies once per map/save load. A company that becomes null-branded later in the same play session is left alone until the next load.
+Build note
+----------
+This source package has not been compiled against your locally installed CS2 toolchain. Build it in your existing CompanyBrandFix project and resolve any game-version-specific API/compiler differences reported by Visual Studio.
