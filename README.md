@@ -1,68 +1,70 @@
-CompanyBrandFix
-============================
+# Company Brand Fix
 
-Purpose
--------
-1. Always performs the lightweight CompanyData.m_Brand repair after each map load.
-2. Optionally performs one prop-only orphan cleanup AFTER brand repair.
+A Cities: Skylines II mod that repairs missing or broken company brands when you load a city. It is useful after a company brand pack is updated, removed, or unsubscribed from, leaving companies with references to brands that no longer exist.
 
-Settings
---------
-Options -> Mods -> Company Brand Fix -> Main -> Cleanup
+**[Get Company Brand Fix on Paradox Mods](https://mods.paradoxplaza.com/mods/160848/Windows)**
 
-"Delete broken props on startup"
-Default: OFF
+## Install and use
 
-When OFF:
-- No orphaned-prop query/scan runs at all.
-- Only the lightweight company-brand repair runs.
+1. Subscribe to the mod on Paradox Mods and enable it in your active playset.
+2. Load your city. Company-brand repair runs automatically after loading; there is no button to press.
+3. If broken props remain, enable the optional cleanup described below and reload the city.
 
-When ON:
-- Brand repair runs first.
-- The prop cleanup waits one additional system update so brand/property refreshes can play back.
-- One prop-only scan runs, then stops for the rest of the map session.
-- Healthy props and healthy buildings receive no writes.
-- Root buildings are never deleted/replaced by this system.
+Brand repair is always active while the mod is enabled. Prop cleanup is off by default.
 
-Standalone broken prop behavior
--------------------------------
-The mod first attempts a conservative rename recovery:
-- It reads the stale prefab/entity debug name when available.
-- It normalizes names by keeping only letters/digits and lowercasing.
-  Example: R0158___Aldi and R0158_Aldi normalize to the same key.
-- It only replaces when exactly ONE healthy prop prefab already represented in the city has that exact normalized key.
-- It does NOT use fuzzy/Levenshtein similarity and never guesses between ambiguous matches.
-- If no safe match exists, the broken standalone prop is deleted.
+## What it fixes
 
-Important: entity/debug names are best-effort runtime metadata. Some broken references may not retain a recoverable name; those fall back to deletion.
+The mod checks companies for brand references that are missing, deleted, or no longer resolve to a loaded prefab. It selects a valid replacement from that company's compatible brand list and requests a refresh of its rented property, if present.
 
-Building-owned broken prop behavior
------------------------------------
-- The broken child prop is removed.
-- Only the owning building is marked Updated.
-- Healthy buildings are untouched.
-- The mod does not name-match generated building subobjects; the current building definition should be authoritative.
+- Companies with valid brands keep them.
+- Companies without a valid company prefab or an available compatible brand are skipped.
+- The repair runs once per map load. It does not continuously scan the city.
 
-Non-building-owned objects
---------------------------
-Broken objects owned by networks/infrastructure/other non-building owner graphs are logged and skipped for safety.
+It assigns an available compatible brand; it cannot restore assets from a brand pack you have removed.
 
-Logging
--------
-Search the game log for CompanyBrandFix.
-Useful summary line:
+## Optional broken-prop cleanup
 
-Orphaned prop scan complete. Scanned=..., UniquePrefabsChecked=..., Broken=..., ReplacedStandalone=..., RemovedStandalone=..., RemovedBuildingOwned=..., BuildingsRefreshed=..., SkippedNonBuildingOwned=...
+Open **Options > Mods > Company Brand Fix > Main > Cleanup** and enable **Delete broken props on startup** before loading your city.
 
-Safety / performance
---------------------
-- Prop cleanup is opt-in and defaults OFF.
-- When disabled, there is no prop scan.
-- When enabled, it is a one-shot in-memory ECS scan after each map load.
-- Prefab validity is cached per unique prefab entity.
-- Only confirmed broken prop instances are mutated.
-- Company brand repair and prop cleanup each retry once after an exception, then fail closed for that map.
+This runs a single cleanup pass after company-brand repair, with one additional system update to allow the property refreshes to take effect. It targets static prop instances with missing or invalid prefabs, including broken props that can appear as gridded boxes.
 
-Build note
-----------
-This source package has not been compiled against your locally installed CS2 toolchain. Build it in your existing CompanyBrandFix project and resolve any game-version-specific API/compiler differences reported by Visual Studio.
+| Object | Cleanup behavior |
+| --- | --- |
+| Broken standalone prop | Removed. |
+| Broken prop owned by a building | Removed, with a refresh requested for the owning building. |
+| Broken object owned by something other than a building | Skipped. |
+| Prop with a valid prefab | Left alone. |
+
+The cleanup excludes root buildings, trees, plants, network objects, pillars, utility objects, outside connections, and placeholders. It does not guess replacement props or recover renamed assets.
+
+Save a copy of your city before using cleanup if you may want to restore the removed props. Turning the option off stops future cleanup passes; it does not undo removals saved with the city.
+
+## Troubleshooting
+
+**A company still has a broken brand:** the mod needs a valid company prefab and at least one loaded compatible brand. Check that the relevant asset packs are enabled, then reload the city.
+
+**Broken props remain:** check that cleanup was enabled before loading the city. Objects owned by non-building entities are intentionally skipped, and this mod does not repair every kind of missing asset.
+
+**You enabled cleanup while the city was already open:** reload the city to run the cleanup pass.
+
+Search the game log for `CompanyBrandFix`. The `Brand repair complete` summary reports how many companies were scanned, repaired, or skipped. When cleanup is enabled, `Orphaned prop scan complete` reports broken props, removals, building refreshes, and skipped objects. Each pass retries once on an exception, then stops for that map if the retry fails.
+
+When reporting a problem, include your game version, mod version, whether cleanup was enabled, and the relevant log summaries or errors.
+
+## Building from source
+
+The project uses C# 9 and targets .NET Framework 4.7.2. It depends on the Cities: Skylines II modding toolchain and game assemblies, so the .NET SDK alone is not enough.
+
+1. Install and configure the Cities: Skylines II modding toolchain.
+2. Check that the user environment variable `CSII_TOOLPATH` points to the toolchain directory containing `Mod.props` and `Mod.targets`. The project imports both files from that location.
+3. Open `CompanyBrandFix.sln` in Visual Studio with .NET Framework 4.7.2 targeting support, select **Release**, and build.
+
+The project treats compiler warnings as errors. Build against the game assemblies for the version you intend to use.
+
+### Source layout
+
+- `Mod.cs`: mod startup, settings registration, logging, and system update order.
+- `Settings.cs`: the optional cleanup setting and English option labels.
+- `Systems/BrandRepairSystem.cs`: company-brand validation, replacement, and property refresh.
+- `Systems/OrphanedPropRepairSystem.cs`: optional prop cleanup and owner checks.
+- `Properties/PublishConfiguration.xml`: Paradox Mods publishing metadata.

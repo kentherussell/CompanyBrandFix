@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Publish>
-  <!-- Leave empty for the first publish. Replace with the assigned Paradox Mods ID afterward. -->
   <ModId Value="" />
 
   <DisplayName Value="Company Brand Fix" />
@@ -31,7 +30,6 @@ The company repair and optional prop cleanup are one-time map-load passes. There
 
 The mod validates prefab references before modifying them and avoids replacing buildings or guessing replacement props. If a reference cannot be repaired safely, it is skipped or removed according to the selected cleanup behavior.</LongDescription>
 
-  <!-- Put your final cover image at Properties/Thumbnail.png before publishing. -->
   <Thumbnail Value="Properties/Thumbnail.png" />
 
   <Tag Value="Code Mod" />
