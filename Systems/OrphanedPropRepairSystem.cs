@@ -35,7 +35,6 @@ namespace CompanyBrandFix
     {
         private const int MaxAttempts = 2;
         private const int MaxDetailLogs = 25;
-        private const int MaxOwnerDepth = 16;
 
         private EndFrameBarrier _endFrameBarrier;
         private PrefabSystem _prefabSystem;
@@ -269,7 +268,7 @@ namespace CompanyBrandFix
 
                     stats.Broken++;
 
-                    OwnerResolution ownerResolution = ResolveOwner(prop);
+                    OwnerResolution<Entity> ownerResolution = ResolveOwner(prop);
 
                     if (ownerResolution.Building != Entity.Null)
                     {
@@ -368,57 +367,16 @@ namespace CompanyBrandFix
             return isValid;
         }
 
-        private OwnerResolution ResolveOwner(Entity prop)
+        private OwnerResolution<Entity> ResolveOwner(Entity prop)
         {
-            Entity current = prop;
-            Entity lastOwner = Entity.Null;
-            bool hasOwner = false;
-
-            for (int depth = 0; depth < MaxOwnerDepth; depth++)
-            {
-                if (!EntityManager.Exists(current) ||
-                    !EntityManager.HasComponent<Game.Common.Owner>(current))
-                {
-                    break;
-                }
-
-                Entity owner =
-                    EntityManager
-                        .GetComponentData<Game.Common.Owner>(current)
-                        .m_Owner;
-
-                if (owner == Entity.Null || owner == current)
-                {
-                    break;
-                }
-
-                hasOwner = true;
-                lastOwner = owner;
-
-                if (!EntityManager.Exists(owner))
-                {
-                    break;
-                }
-
-                if (EntityManager.HasComponent<Game.Buildings.Building>(owner))
-                {
-                    return new OwnerResolution
-                    {
-                        HasOwner = true,
-                        Building = owner,
-                        LastOwner = owner
-                    };
-                }
-
-                current = owner;
-            }
-
-            return new OwnerResolution
-            {
-                HasOwner = hasOwner,
-                Building = Entity.Null,
-                LastOwner = lastOwner
-            };
+            return RepairDecisions.ResolveOwner(
+                prop,
+                Entity.Null,
+                EntityManager.Exists,
+                entity => EntityManager.HasComponent<Game.Common.Owner>(entity)
+                    ? EntityManager.GetComponentData<Game.Common.Owner>(entity).m_Owner
+                    : Entity.Null,
+                entity => EntityManager.HasComponent<Game.Buildings.Building>(entity));
         }
 
         private static void QueueDelete(
@@ -442,13 +400,6 @@ namespace CompanyBrandFix
             detailLogs++;
             Mod.Log.Warn(
                 $"Broken prop {prop}, prefab={prefab}: {action}.");
-        }
-
-        private struct OwnerResolution
-        {
-            public bool HasOwner;
-            public Entity Building;
-            public Entity LastOwner;
         }
 
         private struct PropRepairStats

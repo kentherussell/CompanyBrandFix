@@ -298,31 +298,12 @@ namespace CompanyBrandFix
             Entity company,
             DynamicBuffer<CompanyBrandElement> compatibleBrands)
         {
-            if (compatibleBrands.Length == 0)
-            {
-                return Entity.Null;
-            }
+            int index = RepairDecisions.FindCompatibleBrandIndex(
+                company.Index,
+                compatibleBrands.Length,
+                candidateIndex => IsValidPrefab(compatibleBrands[candidateIndex].m_Brand));
 
-            // Deterministic distribution without touching CompanyData's RNG.
-            int startIndex =
-                (company.Index & int.MaxValue) % compatibleBrands.Length;
-
-            for (int offset = 0;
-                 offset < compatibleBrands.Length;
-                 offset++)
-            {
-                int index =
-                    (startIndex + offset) % compatibleBrands.Length;
-
-                Entity candidate = compatibleBrands[index].m_Brand;
-
-                if (IsValidPrefab(candidate))
-                {
-                    return candidate;
-                }
-            }
-
-            return Entity.Null;
+            return index < 0 ? Entity.Null : compatibleBrands[index].m_Brand;
         }
 
         private bool IsValidPrefab(Entity entity)
