@@ -68,3 +68,15 @@ The project treats compiler warnings as errors. Build against the game assemblie
 - `Systems/BrandRepairSystem.cs`: company-brand validation, replacement, and property refresh.
 - `Systems/OrphanedPropRepairSystem.cs`: optional prop cleanup and owner checks.
 - `Properties/PublishConfiguration.xml`: Paradox Mods publishing metadata.
+
+## Tests
+
+Run the behavior tests with the .NET 9 SDK:
+
+```text
+dotnet test Tests/CompanyBrandFix.Tests.csproj
+```
+
+The test project compiles the same `RepairDecisions.cs` source used by the mod, without requiring game assemblies or a running city. It checks compatible-brand selection, invalid and empty brand lists, deterministic distribution, nested building ownership, missing and non-building owners, self-ownership, cycles, and the ownership traversal limit. The mod project excludes the test sources from its build.
+
+These tests protect the repair decisions. They do not verify game lifecycle callbacks, ECS query exclusions, command-buffer playback, or visual property refreshes. Those still need an in-game check: load a city after removing a brand pack, verify brand repair with cleanup disabled, then enable cleanup and reload to check broken-prop removal and preservation of healthy objects.
