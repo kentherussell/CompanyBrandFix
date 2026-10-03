@@ -71,6 +71,8 @@ The project treats compiler warnings as errors. Build against the game assemblie
 
 ## Tests
 
+GitHub Actions runs the **Behavior tests** check on every pull request and on pushes to `master`. Test results are saved with each workflow run. To make passing tests mandatory before merging, select this check in the branch protection rule or ruleset for `master`.
+
 Run the behavior tests with the .NET 9 SDK:
 
 ```text
